@@ -374,6 +374,7 @@ add_library(crpropa SHARED
 	src/module/ParticleCollector.cpp
 	src/module/PhotoDisintegration.cpp
 	src/module/PhotoPionProduction.cpp
+	src/module/PhotoPionProductionMod.cpp
 	src/module/PhotonEleCa.cpp
 	src/module/PhotonOutput1D.cpp
 	src/module/PropagationCK.cpp

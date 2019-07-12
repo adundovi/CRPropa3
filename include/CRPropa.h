@@ -43,6 +43,7 @@
 #include "crpropa/module/ParticleCollector.h"
 #include "crpropa/module/PhotoDisintegration.h"
 #include "crpropa/module/PhotoPionProduction.h"
+#include "crpropa/module/PhotoPionProductionMod.h"
 #include "crpropa/module/PhotonEleCa.h"
 #include "crpropa/module/PhotonOutput1D.h"
 #include "crpropa/module/PropagationCK.h"

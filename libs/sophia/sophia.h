@@ -3,8 +3,14 @@
 
 extern "C" {
 void sophiaevent_(int& channel, double& inputenergy, double momentum[][2000],
-		int id[], int& n, double& redshift, int& photonbackground, double& maxz,
-		int&, double[], double[]);
+                int id[], int& n, double& redshift, int& photonbackground, double& maxz,
+                int&, double[], double[]);
+}
+
+extern "C" {
+void sophiaeventmod_(int& channel, double& inputenergy, double momentum[][2000],
+                int id[], int& n, double& redshift, int& photonbackground, double& maxz,
+                int&, double[], double[]);
 }
 
 /*
