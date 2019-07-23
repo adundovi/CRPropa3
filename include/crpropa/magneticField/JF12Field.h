@@ -79,7 +79,7 @@ public:
 	// Create and set a random realization for the striated field
 	void randomStriated(int seed = 0);
 
-#ifdef CRPROPA_HAVE_FFTW3F
+#ifdef CRPROPA_HAVE_FFTW3
 	// Create a random realization for the turbulent field
 	void randomTurbulent(int seed = 0);
 #endif

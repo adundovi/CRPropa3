@@ -21,12 +21,16 @@ namespace crpropa {
 double turbulentCorrelationLength(double lMin, double lMax,
 		double alpha = (-11./3.));
 
-#ifdef CRPROPA_HAVE_FFTW3F
+#ifdef CRPROPA_HAVE_FFTW3
+
+double rmsFieldStrengthInK(ref_ptr<VectorGrid> grid);
+
 /**
  Calculate the omnidirectional power spectrum E(k) for a given turbulent field
  Returns a vector of pairs (k_i, E(k_i))
 */
-std::vector<std::pair<int, GridPrecision> > gridPowerSpectrum(ref_ptr<VectorGrid> grid); 
+typedef std::vector<std::pair<double, GridPrecision> > VectorOfPairs;
+VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid); 
 
 /**
  Create a random initialization of a turbulent field.
@@ -53,7 +57,7 @@ void initHelicalTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, d
 void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lMin, double lMax,
 	   double alpha = -11./3., int seed = 0, double lambda = 1);
 
-#endif // CRPROPA_HAVE_FFTW3F
+#endif // CRPROPA_HAVE_FFTW3
 
 /** @}*/
 } // namespace crpropa

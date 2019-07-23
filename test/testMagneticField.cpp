@@ -69,7 +69,7 @@ TEST(testMagneticFieldEvolution, SimpleTest) {
 	EXPECT_DOUBLE_EQ(b.x, 1);
 }
 
-#ifdef CRPROPA_HAVE_FFTW3F
+#ifdef CRPROPA_HAVE_FFTW3
 TEST(testVectorFieldGrid, Turbulence_bmean_brms) {
 	// Test for zero mean: <B> = 0
 	size_t n = 64;
@@ -128,7 +128,7 @@ TEST(testVectorFieldGrid, turbulence_Exceptions) {
 	EXPECT_THROW(initTurbulence(grid, brms, 2 * spacing, 65 * spacing),
 			std::runtime_error);
 }
-#endif // CRPROPA_HAVE_FFTW3F
+#endif // CRPROPA_HAVE_FFTW3
 
 class EchoMagneticField: public MagneticField {
 public:

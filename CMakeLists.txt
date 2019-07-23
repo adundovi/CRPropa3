@@ -208,14 +208,37 @@ if(GOOGLE_PERFTOOLS_FOUND AND NOT NO_TCMALLOC)
 	list(APPEND CRPROPA_EXTRA_LIBRARIES profiler)
 endif(GOOGLE_PERFTOOLS_FOUND AND NOT NO_TCMALLOC)
 
-# FFTW3F (optional for turbulent magnetic fields)
-find_package(FFTW3F)
-if(FFTW3F_FOUND)
-	list(APPEND CRPROPA_EXTRA_INCLUDES ${FFTW3F_INCLUDE_DIR})
-	list(APPEND CRPROPA_EXTRA_LIBRARIES ${FFTW3F_LIBRARY})
-	add_definitions(-DCRPROPA_HAVE_FFTW3F)
-	list(APPEND CRPROPA_SWIG_DEFINES -DCRPROPA_HAVE_FFTW3F)
-endif(FFTW3F_FOUND)
+# Grid Precision settings (float/double)
+option(ENABLE_GRID_DOUBLE_PRECISION "Enable double precision of grids" OFF)
+if(ENABLE_GRID_DOUBLE_PRECISION)
+	set(GRID_PRECISION "double")
+else(ENABLE_GRID_DOUBLE_PRECISION)
+	set(GRID_PRECISION "float")
+ENDIF(ENABLE_GRID_DOUBLE_PRECISION)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/crpropa/Grid.h.in" "${CMAKE_CURRENT_BINARY_DIR}/include/crpropa/Grid.h" @ONLY)
+list(APPEND CRPROPA_EXTRA_INCLUDES {CMAKE_BINARY_DIR}/include)
+
+# FFTW3 (optional for turbulent magnetic fields)
+find_package(FFTW3)
+if(ENABLE_GRID_DOUBLE_PRECISION)
+	if(FFTW3_FOUND)
+		list(APPEND CRPROPA_EXTRA_INCLUDES ${FFTW3_INCLUDE_DIR})
+		list(APPEND CRPROPA_EXTRA_LIBRARIES ${FFTW3_LIBRARY})
+		add_definitions(-DCRPROPA_HAVE_FFTW3)
+		set(FFTW_PREFIX "fftw")
+		list(APPEND CRPROPA_SWIG_DEFINES -DCRPROPA_HAVE_FFTW3)
+	endif(FFTW3_FOUND)
+else(ENABLE_GRID_DOUBLE_PRECISION)
+	if(FFTW3F_FOUND)
+		list(APPEND CRPROPA_EXTRA_INCLUDES ${FFTW3_INCLUDE_DIR})
+		list(APPEND CRPROPA_EXTRA_LIBRARIES ${FFTW3F_LIBRARY})
+		add_definitions(-DCRPROPA_HAVE_FFTW3)
+		set(FFTW_PREFIX "fftwf")
+		list(APPEND CRPROPA_SWIG_DEFINES -DCRPROPA_HAVE_FFTW3)
+	endif(FFTW3F_FOUND)
+endif(ENABLE_GRID_DOUBLE_PRECISION)	
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/GridTurbulence.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/src/GridTurbulence.cpp" @ONLY)
+list(APPEND CRPROPA_EXTRA_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/src/GridTurbulence.cpp")
 
 # Quimby (optional for SPH magnetic fields)
 option(ENABLE_QUIMBY "Quimby Support" ON)
@@ -333,7 +356,7 @@ endif()
 # Library and Binary
 # ----------------------------------------------------------------------------
 file(GLOB_RECURSE CRPROPA_INCLUDES RELATIVE ${CMAKE_SOURCE_DIR} include/*.h)
-include_directories(include ${CRPROPA_EXTRA_INCLUDES})
+include_directories(include ${CMAKE_BINARY_DIR}/include ${CRPROPA_EXTRA_INCLUDES})
 
 add_library(crpropa SHARED
 	src/base64.cpp
@@ -344,9 +367,7 @@ add_library(crpropa SHARED
 	src/EmissionMap.cpp
 	src/Geometry.cpp
 	src/GridTools.cpp
-	src/GridTurbulence.cpp
 	src/Module.cpp
-	src/ModuleList.cpp
 	src/ParticleID.cpp
 	src/ParticleMass.cpp
 	src/ParticleState.cpp
@@ -448,7 +469,7 @@ if(ENABLE_PYTHON AND PYTHONLIBS_FOUND)
 	file(GLOB_RECURSE CRPROPA_SWIG_INPUTS python/*.i)
 	set_source_files_properties( ${CMAKE_CURRENT_BINARY_DIR}/crpropa_wrap.cxx PROPERTIES GENERATED true )
 	add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/crpropa_wrap.cxx
-    COMMAND swig ${BUILTIN} -c++ -python ${PY3} -I${CMAKE_SOURCE_DIR}/include -I${CMAKE_SOURCE_DIR}/libs/HepPID/include ${CRPROPA_SWIG_DEFINES} -dirprot -o ${CMAKE_CURRENT_BINARY_DIR}/crpropa_wrap.cxx -outdir ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/python/crpropa${BUILTIN}.i
+		COMMAND swig ${BUILTIN} -c++ -python ${PY3} -I${CMAKE_SOURCE_DIR}/include -I${CMAKE_BINARY_DIR}/include -I${CMAKE_SOURCE_DIR}/libs/HepPID/include ${CRPROPA_SWIG_DEFINES} -dirprot -o ${CMAKE_CURRENT_BINARY_DIR}/crpropa_wrap.cxx -outdir ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/python/crpropa${BUILTIN}.i
 		DEPENDS ${CRPROPA_SWIG_INPUTS} ${CRPROPA_INCLUDES} )
 
 	add_library(crpropa-swig MODULE ${CMAKE_CURRENT_BINARY_DIR}/crpropa_wrap.cxx)

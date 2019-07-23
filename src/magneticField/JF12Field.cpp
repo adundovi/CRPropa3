@@ -93,12 +93,12 @@ void JF12Field::randomStriated(int seed) {
 	for (int ix = 0; ix < N; ix++)
 		for (int iy = 0; iy < N; iy++)
 			for (int iz = 0; iz < N; iz++) {
-				float &f = striatedGrid->get(ix, iy, iz);
+				GridPrecision &f = striatedGrid->get(ix, iy, iz);
 				f = round(random.rand()) * 2 - 1;
 			}
 }
 
-#ifdef CRPROPA_HAVE_FFTW3F
+#ifdef CRPROPA_HAVE_FFTW3
 void JF12Field::randomTurbulent(int seed) {
 	useTurbulentField = true;
 	// turbulent field with Kolmogorov spectrum, B_rms = 1 and Lc = 60 parsec

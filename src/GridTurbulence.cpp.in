@@ -4,9 +4,10 @@
 #include "crpropa/magneticField/MagneticField.h"
 
 #include <map>
-#include <iostream>
+#include <fstream>
+#include <iomanip>
 
-#ifdef CRPROPA_HAVE_FFTW3F
+#ifdef CRPROPA_HAVE_FFTW3
 #include "fftw3.h"
 #endif
 
@@ -18,23 +19,22 @@ double turbulentCorrelationLength(double lMin, double lMax, double alpha) {
 	return lMax / 2 * (a - 1) / a * (1 - pow(r, a)) / (1 - pow(r, a - 1));
 }
 
-#ifdef CRPROPA_HAVE_FFTW3F
+#ifdef CRPROPA_HAVE_FFTW3
 
-std::vector<std::pair<int, GridPrecision> > gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
+double rmsFieldStrengthInK(ref_ptr<VectorGrid> grid) {
 	
-	double rms = rmsFieldStrength(grid);
 	size_t n = grid->getNx(); // size of array
-	
+
 	// arrays to hold the complex vector components of the B(k)-field
-	fftwf_complex *Bkx, *Bky, *Bkz;
-	Bkx = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n);
-	Bky = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n);
-	Bkz = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n);
-	
-	fftwf_complex *Bx = (fftwf_complex*) Bkx;
-	fftwf_complex *By = (fftwf_complex*) Bky;
-	fftwf_complex *Bz = (fftwf_complex*) Bkz;
-	
+	@FFTW_PREFIX@_complex *Bkx, *Bky, *Bkz;
+	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
+	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
+	Bkz = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
+
+	@FFTW_PREFIX@_complex *Bx = (@FFTW_PREFIX@_complex*) Bkx;
+	@FFTW_PREFIX@_complex *By = (@FFTW_PREFIX@_complex*) Bky;
+	@FFTW_PREFIX@_complex *Bz = (@FFTW_PREFIX@_complex*) Bkz;
+
 	// save to temp
 	int i;
 	for (size_t ix = 0; ix < n; ix++) {
@@ -42,31 +42,33 @@ std::vector<std::pair<int, GridPrecision> > gridPowerSpectrum(ref_ptr<VectorGrid
 			for (size_t iz = 0; iz < n; iz++) {
 				i = ix * n * n + iy * n + iz;
 				Vector3<GridPrecision> &b = grid->get(ix, iy, iz);
-				Bx[i][0] = b.x / rms;
-				By[i][0] = b.y / rms;
-				Bz[i][0] = b.z / rms;
+				Bx[i][0] = b.x;
+				Bx[i][1] = 0.0;
+				By[i][0] = b.y;
+				By[i][1] = 0.0;
+				Bz[i][0] = b.z;
+				Bz[i][1] = 0.0;
 			}
 		}
 	}
 
 	// in-place, real to complex, inverse Fourier transformation on each component
 	// note that the last elements of B(x) are unused now
-	fftwf_plan plan_x = fftwf_plan_dft_3d(n, n, n, Bx, Bkx, FFTW_FORWARD, FFTW_ESTIMATE);
-	fftwf_execute(plan_x);
-	fftwf_destroy_plan(plan_x);
+	@FFTW_PREFIX@_plan plan_x = @FFTW_PREFIX@_plan_dft_3d(n, n, n, Bx, Bkx, FFTW_FORWARD, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_x);
+	@FFTW_PREFIX@_destroy_plan(plan_x);
 
-	fftwf_plan plan_y = fftwf_plan_dft_3d(n, n, n, By, Bky, FFTW_FORWARD, FFTW_ESTIMATE);
-	fftwf_execute(plan_y);
-	fftwf_destroy_plan(plan_y);
+	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_3d(n, n, n, By, Bky, FFTW_FORWARD, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_y);
+	@FFTW_PREFIX@_destroy_plan(plan_y);
 
-	fftwf_plan plan_z = fftwf_plan_dft_3d(n, n, n, Bz, Bkz, FFTW_FORWARD, FFTW_ESTIMATE);
-	fftwf_execute(plan_z);
-	fftwf_destroy_plan(plan_z);
+	@FFTW_PREFIX@_plan plan_z = @FFTW_PREFIX@_plan_dft_3d(n, n, n, Bz, Bkz, FFTW_FORWARD, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_z);
+	@FFTW_PREFIX@_destroy_plan(plan_z);
 
-	GridPrecision power;
-	std::map<size_t, std::pair<GridPrecision, int> > spectrum;
+	double power = 0.0;
 	int k;
-
+	
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
 			for (size_t iz = 0; iz < n; iz++) {
@@ -74,30 +76,119 @@ std::vector<std::pair<int, GridPrecision> > gridPowerSpectrum(ref_ptr<VectorGrid
 				k = static_cast<int>(std::floor(std::sqrt(ix*ix + iy*iy + iz*iz)));
 				if (k > n/2. || k == 0)
 					continue;
-				power = ((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
-					 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]) + 
+				power += ((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
+					 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]) +
 					 (Bkz[i][0]*Bkz[i][0] + Bkz[i][1]*Bkz[i][1]));
-				if (spectrum.find(k) == spectrum.end()) {
-					spectrum[k].first = power;
-					spectrum[k].second = 1;
+			}
+		}
+	}
+
+	@FFTW_PREFIX@_free(Bkx);
+	@FFTW_PREFIX@_free(Bky);
+	@FFTW_PREFIX@_free(Bkz);
+
+	return std::sqrt(power / (n*n*n));
+}
+
+
+VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
+
+	double rms = rmsFieldStrength(grid);
+	size_t n = grid->getNx(); // size of array
+	size_t n2 = (size_t) std::floor(n / 2) + 1; // size array in z-direction in configuration space
+	Vector3d spacing = grid->getSpacing();
+
+	// arrays to hold the complex vector components of the B(k)-field
+	@FFTW_PREFIX@_complex *Bkx, *Bky, *Bkz;
+	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
+	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
+	Bkz = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
+
+	@FFTW_PREFIX@_complex *Bx = (@FFTW_PREFIX@_complex*) Bkx;
+	@FFTW_PREFIX@_complex *By = (@FFTW_PREFIX@_complex*) Bky;
+	@FFTW_PREFIX@_complex *Bz = (@FFTW_PREFIX@_complex*) Bkz;
+
+	// save to temp
+	int i;
+	for (size_t ix = 0; ix < n; ix++) {
+		for (size_t iy = 0; iy < n; iy++) {
+			for (size_t iz = 0; iz < n; iz++) {
+				i = ix * n * n + iy * n + iz;
+				Vector3<GridPrecision> &b = grid->get(ix, iy, iz);
+				Bx[i][0] = b.x / (n*n*n);
+				By[i][0] = b.y / (n*n*n);
+				Bz[i][0] = b.z / (n*n*n);
+			}
+		}
+	}
+
+	// in-place, real to complex, inverse Fourier transformation on each component
+	// note that the last elements of B(x) are unused now
+	@FFTW_PREFIX@_plan plan_x = @FFTW_PREFIX@_plan_dft_3d(n, n, n, Bx, Bkx, FFTW_FORWARD, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_x);
+	@FFTW_PREFIX@_destroy_plan(plan_x);
+
+	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_3d(n, n, n, By, Bky, FFTW_FORWARD, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_y);
+	@FFTW_PREFIX@_destroy_plan(plan_y);
+
+	@FFTW_PREFIX@_plan plan_z = @FFTW_PREFIX@_plan_dft_3d(n, n, n, Bz, Bkz, FFTW_FORWARD, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_z);
+	@FFTW_PREFIX@_destroy_plan(plan_z);
+	
+	// calculate the n possible discrete wave numbers
+	// k in [-n/2, n/2>
+	double K[n];
+	for (int i = 0; i < n; i++)
+		K[i] = (static_cast<double>(i) - i / (n / 2) * n);
+
+	// construct the field in configuration space
+	double k, real_k;
+	double scaling = spacing.x * n / (2*M_PI);
+	Vector3GridPrecision ek, e1, e2; // orthogonal base
+	
+	GridPrecision power;
+	std::map<double, std::pair<GridPrecision, int> > spectrum;
+
+	for (size_t ix = 0; ix < n; ix++) {
+		for (size_t iy = 0; iy < n; iy++) {
+			for (size_t iz = 0; iz < n; iz++) {
+				
+				i = ix * n * n + iy * n + iz;
+				ek.setXYZ(K[ix], K[iy], K[iz]);
+				k = ek.getR();
+				
+				if (k > n2 - 1 || k == 0)
+					continue;
+
+				// |\vec{B}(k)|^2
+				power = ((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
+					 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]) +
+					 (Bkz[i][0]*Bkz[i][0] + Bkz[i][1]*Bkz[i][1]));
+		
+				//k = static_cast<int>(std::floor(std::sqrt(ix*ix + iy*iy + iz*iz)))	
+				real_k = std::round(k) / scaling;	
+				if (spectrum.find(real_k) == spectrum.end()) {
+					spectrum[real_k].first = power;
+					spectrum[real_k].second = 1;
 				}
 				else {
-					spectrum[k].first += power;
-					spectrum[k].second += 1;
+					spectrum[real_k].first += power;
+					spectrum[real_k].second += 1;
 				}
 			}
 		}
 	}
 
-	fftwf_free(Bkx);
-	fftwf_free(Bky);
-	fftwf_free(Bkz);
+	@FFTW_PREFIX@_free(Bkx);
+	@FFTW_PREFIX@_free(Bky);
+	@FFTW_PREFIX@_free(Bkz);
 
-	std::vector<std::pair<int, GridPrecision> > points;
-	for(std::map<size_t, std::pair<GridPrecision, int> >::iterator it = spectrum.begin(); it != spectrum.end(); ++it) {
-        	points.push_back(std::make_pair(
-					it->first,
-					(it->second).first/(it->second).second));
+	VectorOfPairs points;
+	for(std::map<double, std::pair<GridPrecision, int> >::iterator it = spectrum.begin(); it != spectrum.end(); ++it) {
+        	points.push_back(std::make_pair(it->first, (it->second).first)
+					//((it->second).first / (it->second).second) * (it->first*it->first))
+				);
     	}
 
 	return points;
@@ -125,27 +216,27 @@ void checkGridRequirements(ref_ptr<VectorGrid> grid, double lMin, double lMax) {
 }
 
 // Execute inverse discrete FFT in-place for a 3D grid, from complex to real space
-void executeInverseFFTInplace(ref_ptr<VectorGrid> grid, fftwf_complex* Bkx, fftwf_complex* Bky, fftwf_complex* Bkz) {
+void executeInverseFFTInplace(ref_ptr<VectorGrid> grid, @FFTW_PREFIX@_complex* Bkx, @FFTW_PREFIX@_complex* Bky, @FFTW_PREFIX@_complex* Bkz) {
 
 	size_t n = grid->getNx(); // size of array
 	size_t n2 = (size_t) floor(n / 2) + 1; // size array in z-direction in configuration space
 
 	// in-place, complex to real, inverse Fourier transformation on each component
 	// note that the last elements of B(x) are unused now
-	float *Bx = (float*) Bkx;
-	fftwf_plan plan_x = fftwf_plan_dft_c2r_3d(n, n, n, Bkx, Bx, FFTW_ESTIMATE);
-	fftwf_execute(plan_x);
-	fftwf_destroy_plan(plan_x);
+	GridPrecision *Bx = (GridPrecision*) Bkx;
+	@FFTW_PREFIX@_plan plan_x = @FFTW_PREFIX@_plan_dft_c2r_3d(n, n, n, Bkx, Bx, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_x);
+	@FFTW_PREFIX@_destroy_plan(plan_x);
 
-	float *By = (float*) Bky;
-	fftwf_plan plan_y = fftwf_plan_dft_c2r_3d(n, n, n, Bky, By, FFTW_ESTIMATE);
-	fftwf_execute(plan_y);
-	fftwf_destroy_plan(plan_y);
+	GridPrecision *By = (GridPrecision*) Bky;
+	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_c2r_3d(n, n, n, Bky, By, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_y);
+	@FFTW_PREFIX@_destroy_plan(plan_y);
 
-	float *Bz = (float*) Bkz;
-	fftwf_plan plan_z = fftwf_plan_dft_c2r_3d(n, n, n, Bkz, Bz, FFTW_ESTIMATE);
-	fftwf_execute(plan_z);
-	fftwf_destroy_plan(plan_z);
+	GridPrecision *Bz = (GridPrecision*) Bkz;
+	@FFTW_PREFIX@_plan plan_z = @FFTW_PREFIX@_plan_dft_c2r_3d(n, n, n, Bkz, Bz, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_z);
+	@FFTW_PREFIX@_destroy_plan(plan_z);
 
 	// save to grid
 	int i;
@@ -153,7 +244,7 @@ void executeInverseFFTInplace(ref_ptr<VectorGrid> grid, fftwf_complex* Bkx, fftw
 		for (size_t iy = 0; iy < n; iy++) {
 			for (size_t iz = 0; iz < n; iz++) {
 				i = ix * n * 2 * n2 + iy * 2 * n2 + iz;
-				Vector3f &b = grid->get(ix, iy, iz);
+				Vector3GridPrecision &b = grid->get(ix, iy, iz);
 				b.x = Bx[i];
 				b.y = By[i];
 				b.z = Bz[i];
@@ -171,10 +262,10 @@ void initTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double l
 	size_t n2 = (size_t) floor(n / 2) + 1; // size array in z-direction in configuration space
 
 	// arrays to hold the complex vector components of the B(k)-field
-	fftwf_complex *Bkx, *Bky, *Bkz;
-	Bkx = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
-	Bky = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
-	Bkz = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
+	@FFTW_PREFIX@_complex *Bkx, *Bky, *Bkz;
+	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
+	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
+	Bkz = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
 
 	Random random;
 	if (seed != 0)
@@ -194,9 +285,9 @@ void initTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double l
 
 	double kMin = spacing.x / lMax;
 	double kMax = spacing.x / lMin;
-	Vector3f b; // real b-field vector
-	Vector3f ek, e1, e2; // orthogonal base
-	Vector3f n0(1, 1, 1); // arbitrary vector to construct orthogonal base
+	Vector3GridPrecision b; // real b-field vector
+	Vector3GridPrecision ek, e1, e2; // orthogonal base
+	Vector3GridPrecision n0(1, 1, 1); // arbitrary vector to construct orthogonal base
 
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
@@ -254,9 +345,9 @@ void initTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double l
 
 	executeInverseFFTInplace(grid, Bkx, Bky, Bkz);
 
-	fftwf_free(Bkx);
-	fftwf_free(Bky);
-	fftwf_free(Bkz);
+	@FFTW_PREFIX@_free(Bkx);
+	@FFTW_PREFIX@_free(Bky);
+	@FFTW_PREFIX@_free(Bkz);
 
 	scaleGrid(grid, Brms / rmsFieldStrength(grid)); // normalize to Brms
 }
@@ -270,10 +361,10 @@ void initHelicalTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, d
 	size_t n2 = (size_t) floor(n / 2) + 1; // size array in z-direction in configuration space
 
 	// arrays to hold the complex vector components of the B(k)-field
-	fftwf_complex *Bkx, *Bky, *Bkz;
-	Bkx = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
-	Bky = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
-	Bkz = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
+	@FFTW_PREFIX@_complex *Bkx, *Bky, *Bkz;
+	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
+	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
+	Bkz = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
 
 	Random random;
 	if (seed != 0)
@@ -293,9 +384,9 @@ void initHelicalTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, d
 
 	double kMin = spacing.x / lMax;
 	double kMax = spacing.x / lMin;
-	Vector3f b; // real b-field vector
-	Vector3f ek, e1, e2; // orthogonal base
-	Vector3f n0(1, 1, 1); // arbitrary vector to construct orthogonal base
+	Vector3d b; // real b-field vector
+	Vector3d ek, e1, e2; // orthogonal base
+	Vector3d n0(1, 1, 1); // arbitrary vector to construct orthogonal base
 
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
@@ -348,8 +439,8 @@ void initHelicalTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, d
 				Bkz[i][0] = ((Bkplus * ctp + Bkminus * ctm) * e1.z + (-Bkplus * stp + Bkminus * stm) * e2.z) / sqrt(2);
 				Bkz[i][1] = ((Bkplus * stp + Bkminus * stm) * e1.z + ( Bkplus * ctp - Bkminus * ctm) * e2.z) / sqrt(2);
 
-				Vector3f BkRe(Bkx[i][0], Bky[i][0], Bkz[i][0]);
-				Vector3f BkIm(Bkx[i][1], Bky[i][1], Bkz[i][1]);
+				Vector3d BkRe(Bkx[i][0], Bky[i][0], Bkz[i][0]);
+				Vector3d BkIm(Bkx[i][1], Bky[i][1], Bkz[i][1]);
 			} // for iz
 		} // for iy
 	} // for ix
@@ -365,39 +456,45 @@ void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lM
 
 	Vector3d spacing = grid->getSpacing();
 	size_t n = grid->getNx(); // size of array
-	size_t n2 = (size_t) floor(n / 2) + 1; // size array in z-direction in configuration space
+	size_t n2 = (size_t) std::floor(n / 2) + 1; // size array in z-direction in configuration space
 
 	// arrays to hold the complex vector components of the B(k)-field
-	fftwf_complex *Bkx, *Bky, *Bkz;
-	Bkx = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
-	Bky = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
-	Bkz = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * n * n * n2);
+	@FFTW_PREFIX@_complex *Bkx, *Bky, *Bkz;
+	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
+	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
+	Bkz = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n2);
 
 	Random random;
 	if (seed != 0)
 		random.seed(seed); // use given seed
 
 	// calculate the n possible discrete wave numbers
+	// k in [-n/2, n/2>
 	double K[n];
 	for (int i = 0; i < n; i++)
-		K[i] = ((double) i / n - i / (n / 2));
+		K[i] = (static_cast<double>(i) - i / (n / 2) * n);
 
 	// construct the field in configuration space
 	int i;
 	double k;
+	double scaling = spacing.x * n / (2*M_PI);
 
 	// parameters goes for non-helical calculations
-	double theta, phase, cosPhase, sinPhase, amplitude;
+	double theta, phase, cosPhase, sinPhase;
 
-	//double kMin = 2*M_PI / lMax; // * 2 * spacing.x; // spacing.x / lMax;
-	//double kMax = 2*M_PI / lMin; // * 2 * spacing.x; // spacing.x / lMin;
-	double kMin = spacing.x / lMax;
-	double kMax = spacing.x / lMin;
-	lambda = lambda / spacing.x * 2*M_PI;
+	double kMin = 2*M_PI / lMax * scaling;
+	double kMax = 2*M_PI / lMin * scaling;
+	lambda = lambda / scaling;
+	double norm = 0.2776*Brms*lambda;
 
-	Vector3f b; // real b-field vector
-	Vector3f ek, e1, e2; // orthogonal base
-	Vector3f n0(1, 1, 1); // arbitrary vector to construct orthogonal base
+	Vector3d b; // real b-field vector
+	Vector3d ek, e1, e2; // orthogonal base
+	Vector3d n0(1, 1, 1); // arbitrary vector to construct orthogonal base
+	// dot product can produce ~1e-7 for orthogonal Vector3f vectors
+
+	GridPrecision power;
+	double real_k;
+	std::map<double, std::pair<GridPrecision, int> > spectrum;
 
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
@@ -419,10 +516,10 @@ void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lM
 				}
 
 				// construct an orthogonal base ek, e1, e2
-				if (ek.isParallelTo(n0, float(1e-3))) {
+				if (ek.isParallelTo(n0, double(1e-3))) {
 					// ek parallel to (1,1,1)
 					e1.setXYZ(-1., 1., 0);
-					e2.setXYZ(1., 1., -2.);
+					e2.setXYZ(-1., -1., 2.);
 				} else {
 					// ek not parallel to (1,1,1)
 					e1 = n0.cross(ek);
@@ -436,9 +533,8 @@ void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lM
 				b = e1 * cos(theta) + e2 * sin(theta);
 
 				// normal distributed amplitude with mean = 0 and sigma = k^alpha/2
-				amplitude = k * lambda *
-					pow(1.0 + k*k*lambda*lambda, (alpha / 2 - 1) / 2.);
-				b *= amplitude;
+				b *= norm * k * lambda *
+					std::pow(1.0 + k*k*lambda*lambda, (alpha / 2. - 1.) / 2.);
 
 				// uniform random phase
 				phase = 2 * M_PI * random.rand();
@@ -457,13 +553,13 @@ void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lM
 
 	executeInverseFFTInplace(grid, Bkx, Bky, Bkz);
 
-	fftwf_free(Bkx);
-	fftwf_free(Bky);
-	fftwf_free(Bkz);
-
+	@FFTW_PREFIX@_free(Bkx);
+	@FFTW_PREFIX@_free(Bky);
+	@FFTW_PREFIX@_free(Bkz);
+	
 	scaleGrid(grid, Brms / rmsFieldStrength(grid)); // normalize to Brms
 }
 
-#endif // CRPROPA_HAVE_FFTW3F
+#endif // CRPROPA_HAVE_FFTW3
 
 } // namespace crpropa

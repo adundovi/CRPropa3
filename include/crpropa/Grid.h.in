@@ -240,8 +240,9 @@ public:
 	}
 };
 
-typedef float GridPrecision;
-typedef Grid<Vector3<GridPrecision> > VectorGrid;
+typedef @GRID_PRECISION@ GridPrecision; // float or double, determined from CMake config
+typedef Vector3<GridPrecision> Vector3GridPrecision;
+typedef Grid<Vector3GridPrecision> VectorGrid;
 typedef Grid<GridPrecision> ScalarGrid;
 /** @}*/
 
