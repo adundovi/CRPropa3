@@ -23,8 +23,6 @@ double turbulentCorrelationLength(double lMin, double lMax,
 
 #ifdef CRPROPA_HAVE_FFTW3
 
-double rmsFieldStrengthInK(ref_ptr<VectorGrid> grid);
-
 /**
  Calculate the omnidirectional power spectrum E(k) for a given turbulent field
  Returns a vector of pairs (k_i, E(k_i))

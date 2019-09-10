@@ -21,76 +21,6 @@ double turbulentCorrelationLength(double lMin, double lMax, double alpha) {
 
 #ifdef CRPROPA_HAVE_FFTW3
 
-double rmsFieldStrengthInK(ref_ptr<VectorGrid> grid) {
-	
-	size_t n = grid->getNx(); // size of array
-
-	// arrays to hold the complex vector components of the B(k)-field
-	@FFTW_PREFIX@_complex *Bkx, *Bky, *Bkz;
-	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
-	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
-	Bkz = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n * n);
-
-	@FFTW_PREFIX@_complex *Bx = (@FFTW_PREFIX@_complex*) Bkx;
-	@FFTW_PREFIX@_complex *By = (@FFTW_PREFIX@_complex*) Bky;
-	@FFTW_PREFIX@_complex *Bz = (@FFTW_PREFIX@_complex*) Bkz;
-
-	// save to temp
-	int i;
-	for (size_t ix = 0; ix < n; ix++) {
-		for (size_t iy = 0; iy < n; iy++) {
-			for (size_t iz = 0; iz < n; iz++) {
-				i = ix * n * n + iy * n + iz;
-				Vector3<GridPrecision> &b = grid->get(ix, iy, iz);
-				Bx[i][0] = b.x;
-				Bx[i][1] = 0.0;
-				By[i][0] = b.y;
-				By[i][1] = 0.0;
-				Bz[i][0] = b.z;
-				Bz[i][1] = 0.0;
-			}
-		}
-	}
-
-	// in-place, real to complex, inverse Fourier transformation on each component
-	// note that the last elements of B(x) are unused now
-	@FFTW_PREFIX@_plan plan_x = @FFTW_PREFIX@_plan_dft_3d(n, n, n, Bx, Bkx, FFTW_FORWARD, FFTW_ESTIMATE);
-	@FFTW_PREFIX@_execute(plan_x);
-	@FFTW_PREFIX@_destroy_plan(plan_x);
-
-	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_3d(n, n, n, By, Bky, FFTW_FORWARD, FFTW_ESTIMATE);
-	@FFTW_PREFIX@_execute(plan_y);
-	@FFTW_PREFIX@_destroy_plan(plan_y);
-
-	@FFTW_PREFIX@_plan plan_z = @FFTW_PREFIX@_plan_dft_3d(n, n, n, Bz, Bkz, FFTW_FORWARD, FFTW_ESTIMATE);
-	@FFTW_PREFIX@_execute(plan_z);
-	@FFTW_PREFIX@_destroy_plan(plan_z);
-
-	double power = 0.0;
-	int k;
-	
-	for (size_t ix = 0; ix < n; ix++) {
-		for (size_t iy = 0; iy < n; iy++) {
-			for (size_t iz = 0; iz < n; iz++) {
-				i = ix * n * n + iy * n + iz;
-				k = static_cast<int>(std::floor(std::sqrt(ix*ix + iy*iy + iz*iz)));
-				if (k > n/2. || k == 0)
-					continue;
-				power += ((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
-					 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]) +
-					 (Bkz[i][0]*Bkz[i][0] + Bkz[i][1]*Bkz[i][1]));
-			}
-		}
-	}
-
-	@FFTW_PREFIX@_free(Bkx);
-	@FFTW_PREFIX@_free(Bky);
-	@FFTW_PREFIX@_free(Bkz);
-
-	return std::sqrt(power / (n*n*n));
-}
-
-
 VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 
 	double rms = rmsFieldStrength(grid);
@@ -109,7 +39,7 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 	@FFTW_PREFIX@_complex *Bz = (@FFTW_PREFIX@_complex*) Bkz;
 
 	// save to temp
-	int i;
+	size_t i;
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
 			for (size_t iz = 0; iz < n; iz++) {
@@ -166,7 +96,6 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 					 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]) +
 					 (Bkz[i][0]*Bkz[i][0] + Bkz[i][1]*Bkz[i][1]));
 		
-				//k = static_cast<int>(std::floor(std::sqrt(ix*ix + iy*iy + iz*iz)))	
 				real_k = std::round(k) / scaling;	
 				if (spectrum.find(real_k) == spectrum.end()) {
 					spectrum[real_k].first = power;
@@ -186,9 +115,7 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 
 	VectorOfPairs points;
 	for(std::map<double, std::pair<GridPrecision, int> >::iterator it = spectrum.begin(); it != spectrum.end(); ++it) {
-        	points.push_back(std::make_pair(it->first, (it->second).first)
-					//((it->second).first / (it->second).second) * (it->first*it->first))
-				);
+        	points.push_back(std::make_pair(it->first, (it->second).first));
     	}
 
 	return points;
@@ -239,7 +166,7 @@ void executeInverseFFTInplace(ref_ptr<VectorGrid> grid, @FFTW_PREFIX@_complex* B
 	@FFTW_PREFIX@_destroy_plan(plan_z);
 
 	// save to grid
-	int i;
+	size_t i;
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
 			for (size_t iz = 0; iz < n; iz++) {
@@ -277,7 +204,7 @@ void initTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double l
 		K[i] = (double) i / n - i / (n / 2);
 
 	// construct the field in configuration space
-	int i;
+	size_t i;
 	double k;
 
 	// parameters goes for non-helical calculations
@@ -376,7 +303,7 @@ void initHelicalTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, d
 		K[i] = (double) i / n - i / (n / 2);
 
 	// construct the field in configuration space
-	int i;
+	size_t i;
 	double k;
 
 	// only used if there is a helicity
@@ -475,7 +402,7 @@ void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lM
 		K[i] = (static_cast<double>(i) - i / (n / 2) * n);
 
 	// construct the field in configuration space
-	int i;
+	size_t i;
 	double k;
 	double scaling = spacing.x * n / (2*M_PI);
 
