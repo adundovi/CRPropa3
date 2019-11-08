@@ -55,6 +55,9 @@ void initHelicalTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, d
 void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lMin, double lMax,
 	   double alpha = -11./3., int seed = 0, double lambda = 1);
 
+void initSlabTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double lMax,
+	   double alpha = -11./3., int seed = 0, double lambda = 1);
+
 #endif // CRPROPA_HAVE_FFTW3
 
 /** @}*/
