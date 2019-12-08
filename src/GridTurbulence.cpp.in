@@ -12,6 +12,9 @@
 #include "fftw3.h"
 #endif
 
+// tmp
+#include <iostream>
+
 namespace crpropa {
 
 double turbulentCorrelationLength(double lMin, double lMax, double alpha) {
@@ -484,10 +487,9 @@ void initSlabTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, doub
 	size_t n2 = (size_t) std::floor(nz / 2) + 1; // size array in z-direction in configuration space
 
 	// arrays to hold the complex vector components of the B(k)-field
-	@FFTW_PREFIX@_complex *Bkx, *Bky, *Bkz;
+	@FFTW_PREFIX@_complex *Bkx, *Bky;
 	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * nz);
 	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * nz);
-	Bkz = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * nz);
 
 	Random random;
 	if (seed != 0)
@@ -525,8 +527,6 @@ void initSlabTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, doub
 			Bkx[iz][1] = 0;
 			Bky[iz][0] = 0;
 			Bky[iz][1] = 0;
-			Bkz[iz][0] = 0;
-			Bkz[iz][1] = 0;
 			continue;
 		}
 
@@ -561,8 +561,6 @@ void initSlabTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, doub
 		Bkx[iz][1] = b.x * sinPhase;
 		Bky[iz][0] = b.y * cosPhase;
 		Bky[iz][1] = b.y * sinPhase;
-		Bkz[iz][0] = 0;
-		Bkz[iz][1] = 0;
 	} // for iz
 
 	// in-place, complex to real, inverse Fourier transformation on each component
@@ -577,11 +575,6 @@ void initSlabTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, doub
 	@FFTW_PREFIX@_execute(plan_y);
 	@FFTW_PREFIX@_destroy_plan(plan_y);
 
-	GridPrecision *Bz = (GridPrecision*) Bkz;
-	@FFTW_PREFIX@_plan plan_z = @FFTW_PREFIX@_plan_dft_c2r_1d(nz, Bkz, Bz, FFTW_ESTIMATE);
-	@FFTW_PREFIX@_execute(plan_z);
-	@FFTW_PREFIX@_destroy_plan(plan_z);
-
 	// save to grid
 	for (size_t ix = 0; ix < nx; ix++) {
 		for (size_t iy = 0; iy < ny; iy++) {
@@ -589,14 +582,13 @@ void initSlabTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, doub
 				Vector3GridPrecision &b = grid->get(ix, iy, iz);
 				b.x = Bx[iz];
 				b.y = By[iz];
-				b.z = Bz[iz];
+				b.z = 0;
 			}
 		}
 	}
 
 	@FFTW_PREFIX@_free(Bkx);
 	@FFTW_PREFIX@_free(Bky);
-	@FFTW_PREFIX@_free(Bkz);
 	
 	scaleGrid(grid, Brms / rmsFieldStrength(grid)); // normalize to Brms
 }
@@ -607,13 +599,13 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 	size_t nx = grid->getNx(); // size of array in X-dir
 	size_t ny = grid->getNy(); // size of array in Y-dir
 	size_t nz = grid->getNz(); // size of array in Z-dir
+	size_t n  = nx;
 	size_t n2 = (size_t) std::floor(nx / 2) + 1; // size array in z-direction in configuration space
 
 	// arrays to hold the complex vector components of the B(k)-field
-	@FFTW_PREFIX@_complex *Bkx, *Bky, *Bkz;
-	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * nx * ny);
-	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * nx * ny);
-	Bkz = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * nx * ny);
+	@FFTW_PREFIX@_complex *Bkx, *Bky;
+	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n);
+	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n);
 
 	Random random;
 	if (seed != 0)
@@ -621,9 +613,10 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 
 	// calculate the n possible discrete wave numbers
 	// k in [-n/2, n/2>
-	double K[nx];
-	for (size_t i = 0; i < nx; i++)
-		K[i] = (static_cast<double>(i) - i / (nx / 2) * nx);
+	std::unique_ptr<std::vector<double>> K(new std::vector<double>);
+	K->reserve(nz);
+	for (size_t i = 0; i < n; i++)
+		K->push_back(static_cast<double>(i) - i / (n / 2) * n);
 
 	// construct the field in configuration space
 	double scaling = spacing.x * nx / (2*M_PI);
@@ -640,24 +633,19 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 	Vector3d n0(1, 1, 1); // arbitrary vector to construct orthogonal base
 	// dot product can produce ~1e-7 for orthogonal Vector3f vectors
 
-	GridPrecision power;
-	std::map<double, std::pair<GridPrecision, int> > spectrum;
-
 	for (size_t ix = 0; ix < nx; ix++) {
 		for (size_t iy = 0; iy < ny; iy++) {
 				
 			size_t i = ix * nx + iy;
-			ek.setXYZ(K[ix], K[iy], 0);
+			ek.setXYZ((*K)[ix], (*K)[iy], 0);
 			double k = ek.getR();
-
+	
 			// wave outside of turbulent range -> B(k) = 0
 			if ((k < kMin) || (k > kMax)) {
 				Bkx[i][0] = 0;
 				Bkx[i][1] = 0;
 				Bky[i][0] = 0;
 				Bky[i][1] = 0;
-				Bkz[i][0] = 0;
-				Bkz[i][1] = 0;
 				continue;
 			}
 
@@ -691,8 +679,6 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 			Bkx[i][1] = b.x * sinPhase;
 			Bky[i][0] = b.y * cosPhase;
 			Bky[i][1] = b.y * sinPhase;
-			Bkz[i][0] = 0;
-			Bkz[i][1] = 0;
 		} // for iy
 	} // for ix
 	
@@ -707,28 +693,22 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_c2r_2d(nx, ny, Bky, By, FFTW_ESTIMATE);
 	@FFTW_PREFIX@_execute(plan_y);
 	@FFTW_PREFIX@_destroy_plan(plan_y);
-
-	GridPrecision *Bz = (GridPrecision*) Bkz;
-	@FFTW_PREFIX@_plan plan_z = @FFTW_PREFIX@_plan_dft_c2r_2d(nx, ny,  Bkz, Bz, FFTW_ESTIMATE);
-	@FFTW_PREFIX@_execute(plan_z);
-	@FFTW_PREFIX@_destroy_plan(plan_z);
-
+			
 	// save to grid
 	for (size_t ix = 0; ix < nx; ix++) {
 		for (size_t iy = 0; iy < ny; iy++) {
 			for (size_t iz = 0; iz < nz; iz++) {
-				size_t i = ix * nx * 2 * n2 + iy * 2 * n2 + iz;
+				size_t i = ix * n + iy * n;
 				Vector3GridPrecision &b = grid->get(ix, iy, iz);
 				b.x = Bx[i];
 				b.y = By[i];
-				b.z = Bz[i];
+				b.z = 0;
 			}
 		}
 	}
-
+	
 	@FFTW_PREFIX@_free(Bkx);
 	@FFTW_PREFIX@_free(Bky);
-	@FFTW_PREFIX@_free(Bkz);
 	
 	scaleGrid(grid, Brms / rmsFieldStrength(grid)); // normalize to Brms
 }
