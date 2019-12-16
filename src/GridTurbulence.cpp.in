@@ -411,9 +411,6 @@ void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lM
 	Vector3d n0(1, 1, 1); // arbitrary vector to construct orthogonal base
 	// dot product can produce ~1e-7 for orthogonal Vector3f vectors
 
-	GridPrecision power;
-	std::map<double, std::pair<GridPrecision, int> > spectrum;
-
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
 			for (size_t iz = 0; iz < n2; iz++) {
@@ -604,8 +601,8 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 
 	// arrays to hold the complex vector components of the B(k)-field
 	@FFTW_PREFIX@_complex *Bkx, *Bky;
-	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n);
-	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n);
+	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n2);
+	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n2);
 
 	Random random;
 	if (seed != 0)
@@ -633,10 +630,10 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 	Vector3d n0(1, 1, 1); // arbitrary vector to construct orthogonal base
 	// dot product can produce ~1e-7 for orthogonal Vector3f vectors
 
-	for (size_t ix = 0; ix < nx; ix++) {
-		for (size_t iy = 0; iy < ny; iy++) {
+	for (size_t ix = 0; ix < n; ix++) {
+		for (size_t iy = 0; iy < n2; iy++) {
 				
-			size_t i = ix * nx + iy;
+			size_t i = ix * n2 + iy;
 			ek.setXYZ((*K)[ix], (*K)[iy], 0);
 			double k = ek.getR();
 	
@@ -698,7 +695,7 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 	for (size_t ix = 0; ix < nx; ix++) {
 		for (size_t iy = 0; iy < ny; iy++) {
 			for (size_t iz = 0; iz < nz; iz++) {
-				size_t i = ix * n + iy * n;
+				size_t i = ix * 2 * n2 + iy;
 				Vector3GridPrecision &b = grid->get(ix, iy, iz);
 				b.x = Bx[i];
 				b.y = By[i];
