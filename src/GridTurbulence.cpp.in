@@ -29,7 +29,6 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 
 	double rms = rmsFieldStrength(grid);
 	size_t n = grid->getNx(); // size of array
-	size_t n2 = (size_t) std::floor(n / 2) + 1; // size array in z-direction in configuration space
 	Vector3d spacing = grid->getSpacing();
 
 	// arrays to hold the complex vector components of the B(k)-field
@@ -90,7 +89,7 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 				ek.setXYZ(K[ix], K[iy], K[iz]);
 				double k = ek.getR();
 				
-				if (k > n2 - 1 || k == 0)
+				if (k > n/2 - 1 || k == 0)
 					continue;
 
 				// |\vec{B}(k)|^2
@@ -122,6 +121,92 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 
 	return points;
 }
+
+VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid) {
+
+	double rms = rmsFieldStrength(grid);
+	size_t n = grid->getNx(); // size of array
+	Vector3d spacing = grid->getSpacing();
+
+	// arrays to hold the complex vector components of the B(k)-field
+	@FFTW_PREFIX@_complex *Bkx, *Bky;
+	Bkx = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n);
+	Bky = (@FFTW_PREFIX@_complex*) @FFTW_PREFIX@_malloc(sizeof(@FFTW_PREFIX@_complex) * n * n);
+
+	@FFTW_PREFIX@_complex *Bx = (@FFTW_PREFIX@_complex*) Bkx;
+	@FFTW_PREFIX@_complex *By = (@FFTW_PREFIX@_complex*) Bky;
+
+	// save to temp
+	for (size_t ix = 0; ix < n; ix++) {
+		for (size_t iy = 0; iy < n; iy++) {
+			size_t i = ix * n + iy;
+			Vector3<GridPrecision> &b = grid->get(ix, iy, 0);
+			Bx[i][0] = b.x / (n*n);
+			By[i][0] = b.y / (n*n);
+		}
+	}
+	
+	// in-place, real to complex, inverse Fourier transformation on each component
+	// note that the last elements of B(x) are unused now
+	@FFTW_PREFIX@_plan plan_x = @FFTW_PREFIX@_plan_dft_2d(n, n, Bx, Bkx, FFTW_FORWARD, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_x);
+	@FFTW_PREFIX@_destroy_plan(plan_x);
+	
+	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_2d(n, n, By, Bky, FFTW_FORWARD, FFTW_ESTIMATE);
+	@FFTW_PREFIX@_execute(plan_y);
+	@FFTW_PREFIX@_destroy_plan(plan_y);
+
+	// calculate the n possible discrete wave numbers
+	// k in [-n/2, n/2>
+	std::unique_ptr<std::vector<double>> K(new std::vector<double>);
+	K->reserve(n);
+	for (size_t i = 0; i < n; i++)
+		K->push_back(static_cast<double>(i) - i / (n / 2) * n);
+
+	// construct the field in configuration space
+	double scaling = spacing.x * n / (2*M_PI);
+	Vector3GridPrecision ek, e1, e2; // orthogonal base
+	
+	GridPrecision power;
+	std::map<double, std::pair<GridPrecision, int> > spectrum;
+	
+	for (size_t ix = 0; ix < n; ix++) {
+		for (size_t iy = 0; iy < n; iy++) {
+				
+			size_t i = ix * n + iy;
+			ek.setXYZ((*K)[ix], (*K)[iy], 0);
+			double k = ek.getR();
+
+			if (k > n/2 - 1 || k == 0)
+				continue;
+			
+			// |\vec{B}(k)|^2
+			power = ((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
+				 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]));
+		
+			double real_k = std::round(k) / scaling;
+			if (spectrum.find(real_k) == spectrum.end()) {
+				spectrum[real_k].first = power;
+				spectrum[real_k].second = 1;
+			}
+			else {
+				spectrum[real_k].first += power;
+				spectrum[real_k].second += 1;
+			}
+		}
+	}
+
+	@FFTW_PREFIX@_free(Bkx);
+	@FFTW_PREFIX@_free(Bky);
+
+	VectorOfPairs points;
+	for(std::map<double, std::pair<GridPrecision, int> >::iterator it = spectrum.begin(); it != spectrum.end(); ++it) {
+        	points.push_back(std::make_pair(it->first, (it->second).first));
+    	}
+
+	return points;
+}
+
 
 /* Helper functions for synthetic turbulent field models */
 
@@ -664,8 +749,7 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 			b = e1 * cos(theta) + e2 * sin(theta);
 
 			// normal distributed amplitude with mean = 0 and sigma = k^(-nu)/2
-			b *= k * lambda *
-				std::pow(1.0 + k*k*lambda*lambda, alpha / 4.);
+			b *= std::pow(1.0 + k*k*lambda*lambda, alpha / 4 + 1/2.);
 
 			// uniform random phase
 			phase = 2 * M_PI * random.rand();
@@ -695,7 +779,7 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 	for (size_t ix = 0; ix < nx; ix++) {
 		for (size_t iy = 0; iy < ny; iy++) {
 			for (size_t iz = 0; iz < nz; iz++) {
-				size_t i = ix * 2 * n2 + iy;
+				size_t i = ix * n + iy;
 				Vector3GridPrecision &b = grid->get(ix, iy, iz);
 				b.x = Bx[i];
 				b.y = By[i];

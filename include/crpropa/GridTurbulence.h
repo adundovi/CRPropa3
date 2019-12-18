@@ -29,6 +29,7 @@ double turbulentCorrelationLength(double lMin, double lMax,
 */
 typedef std::vector<std::pair<double, GridPrecision> > VectorOfPairs;
 VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid); 
+VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid);
 
 /**
  Create a random initialization of a turbulent field.
