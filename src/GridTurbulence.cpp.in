@@ -78,7 +78,6 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 	double scaling = spacing.x * n / (2*M_PI);
 	Vector3GridPrecision ek, e1, e2; // orthogonal base
 	
-	GridPrecision power;
 	std::map<double, std::pair<GridPrecision, int> > spectrum;
 
 	for (size_t ix = 0; ix < n; ix++) {
@@ -93,7 +92,8 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 					continue;
 
 				// |\vec{B}(k)|^2
-				power = ((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
+				GridPrecision power = 
+					((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
 					 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]) +
 					 (Bkz[i][0]*Bkz[i][0] + Bkz[i][1]*Bkz[i][1]));
 		
@@ -167,7 +167,6 @@ VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid) {
 	double scaling = spacing.x * n / (2*M_PI);
 	Vector3GridPrecision ek, e1, e2; // orthogonal base
 	
-	GridPrecision power;
 	std::map<double, std::pair<GridPrecision, int> > spectrum;
 	
 	for (size_t ix = 0; ix < n; ix++) {
@@ -181,7 +180,8 @@ VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid) {
 				continue;
 			
 			// |\vec{B}(k)|^2
-			power = ((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
+			GridPrecision power =
+				((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
 				 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]));
 		
 			double real_k = std::round(k) / scaling;
@@ -749,7 +749,7 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 			b = e1 * cos(theta) + e2 * sin(theta);
 
 			// normal distributed amplitude with mean = 0 and sigma = k^(-nu)/2
-			b *= std::pow(1.0 + k*k*lambda*lambda, alpha / 4 + 1/2.);
+			b *= std::pow(1.0 + k*k*lambda*lambda, alpha / 4 + 1/4.);
 
 			// uniform random phase
 			phase = 2 * M_PI * random.rand();
