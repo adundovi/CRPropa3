@@ -749,7 +749,7 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 			b = e1 * cos(theta) + e2 * sin(theta);
 
 			// normal distributed amplitude with mean = 0 and sigma = k^(-nu)/2
-			b *= std::pow(1.0 + k*k*lambda*lambda, alpha / 4 + 1/4.);
+			b *= std::pow(1.0 + lambda*lambda*k*k, alpha/4 + 1/4.);
 
 			// uniform random phase
 			phase = 2 * M_PI * random.rand();
