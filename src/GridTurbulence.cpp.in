@@ -234,6 +234,9 @@ void executeInverseFFTInplace(ref_ptr<VectorGrid> grid, @FFTW_PREFIX@_complex* B
 
 	size_t n = grid->getNx(); // size of array
 	size_t n2 = (size_t) floor(n / 2) + 1; // size array in z-direction in configuration space
+	
+	@FFTW_PREFIX@_init_threads();
+	@FFTW_PREFIX@_plan_with_nthreads(16);
 
 	// in-place, complex to real, inverse Fourier transformation on each component
 	// note that the last elements of B(x) are unused now
@@ -556,6 +559,8 @@ void initTurbulenceWithBendover(ref_ptr<VectorGrid> grid, double Brms, double lM
 	@FFTW_PREFIX@_free(Bkx);
 	@FFTW_PREFIX@_free(Bky);
 	@FFTW_PREFIX@_free(Bkz);
+
+	@FFTW_PREFIX@_cleanup_threads();
 	
 	scaleGrid(grid, Brms / rmsFieldStrength(grid)); // normalize to Brms
 }
