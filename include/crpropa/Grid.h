@@ -240,10 +240,10 @@ public:
 	}
 };
 
-typedef @GRID_PRECISION@ GridPrecision; // float or double, determined from CMake config
-typedef Vector3<GridPrecision> Vector3GridPrecision;
-typedef Grid<Vector3GridPrecision> VectorGrid;
-typedef Grid<GridPrecision> ScalarGrid;
+typedef Grid<Vector3f> VectorGrid;
+typedef Grid<Vector3d> VectorGridDouble;
+typedef Grid<float> ScalarGrid;
+typedef Grid<double> ScalarGridDouble;
 /** @}*/
 
 } // namespace crpropa

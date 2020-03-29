@@ -25,6 +25,7 @@ double turbulentCorrelationLength(double lMin, double lMax, double alpha) {
 
 #ifdef CRPROPA_HAVE_FFTW3
 
+/*
 VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 
 	double rms = rmsFieldStrength(grid);
@@ -46,7 +47,7 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 		for (size_t iy = 0; iy < n; iy++) {
 			for (size_t iz = 0; iz < n; iz++) {
 				size_t i = ix * n * n + iy * n + iz;
-				Vector3<GridPrecision> &b = grid->get(ix, iy, iz);
+				Vector3<float> &b = grid->get(ix, iy, iz);
 				Bx[i][0] = b.x / (n*n*n);
 				By[i][0] = b.y / (n*n*n);
 				Bz[i][0] = b.z / (n*n*n);
@@ -76,9 +77,9 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 
 	// construct the field in configuration space
 	double scaling = spacing.x * n / (2*M_PI);
-	Vector3GridPrecision ek, e1, e2; // orthogonal base
+	Vector3<float> ek, e1, e2; // orthogonal base
 	
-	std::map<double, std::pair<GridPrecision, int> > spectrum;
+	std::map<double, std::pair<float, int> > spectrum;
 
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
@@ -92,7 +93,7 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 					continue;
 
 				// |\vec{B}(k)|^2
-				GridPrecision power = 
+				float power = 
 					((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
 					 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]) +
 					 (Bkz[i][0]*Bkz[i][0] + Bkz[i][1]*Bkz[i][1]));
@@ -115,7 +116,7 @@ VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid) {
 	@FFTW_PREFIX@_free(Bkz);
 
 	VectorOfPairs points;
-	for(std::map<double, std::pair<GridPrecision, int> >::iterator it = spectrum.begin(); it != spectrum.end(); ++it) {
+	for(std::map<double, std::pair<float, int> >::iterator it = spectrum.begin(); it != spectrum.end(); ++it) {
         	points.push_back(std::make_pair(it->first, (it->second).first));
     	}
 
@@ -140,7 +141,7 @@ VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid) {
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
 			size_t i = ix * n + iy;
-			Vector3<GridPrecision> &b = grid->get(ix, iy, 0);
+			Vector3<float> &b = grid->get(ix, iy, 0);
 			Bx[i][0] = b.x / (n*n);
 			By[i][0] = b.y / (n*n);
 		}
@@ -165,9 +166,9 @@ VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid) {
 
 	// construct the field in configuration space
 	double scaling = spacing.x * n / (2*M_PI);
-	Vector3GridPrecision ek, e1, e2; // orthogonal base
+	Vector3<float> ek, e1, e2; // orthogonal base
 	
-	std::map<double, std::pair<GridPrecision, int> > spectrum;
+	std::map<double, std::pair<float, int> > spectrum;
 	
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
@@ -180,7 +181,7 @@ VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid) {
 				continue;
 			
 			// |\vec{B}(k)|^2
-			GridPrecision power =
+			float power =
 				((Bkx[i][0]*Bkx[i][0] + Bkx[i][1]*Bkx[i][1]) +
 				 (Bky[i][0]*Bky[i][0] + Bky[i][1]*Bky[i][1]));
 		
@@ -200,13 +201,13 @@ VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid) {
 	@FFTW_PREFIX@_free(Bky);
 
 	VectorOfPairs points;
-	for(std::map<double, std::pair<GridPrecision, int> >::iterator it = spectrum.begin(); it != spectrum.end(); ++it) {
+	for(std::map<double, std::pair<float, int> >::iterator it = spectrum.begin(); it != spectrum.end(); ++it) {
         	points.push_back(std::make_pair(it->first, (it->second).first));
     	}
 
 	return points;
 }
-
+*/
 
 /* Helper functions for synthetic turbulent field models */
 
@@ -240,17 +241,17 @@ void executeInverseFFTInplace(ref_ptr<VectorGrid> grid, @FFTW_PREFIX@_complex* B
 
 	// in-place, complex to real, inverse Fourier transformation on each component
 	// note that the last elements of B(x) are unused now
-	GridPrecision *Bx = (GridPrecision*) Bkx;
+	float *Bx = (float*) Bkx;
 	@FFTW_PREFIX@_plan plan_x = @FFTW_PREFIX@_plan_dft_c2r_3d(n, n, n, Bkx, Bx, FFTW_ESTIMATE);
 	@FFTW_PREFIX@_execute(plan_x);
 	@FFTW_PREFIX@_destroy_plan(plan_x);
 
-	GridPrecision *By = (GridPrecision*) Bky;
+	float *By = (float*) Bky;
 	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_c2r_3d(n, n, n, Bky, By, FFTW_ESTIMATE);
 	@FFTW_PREFIX@_execute(plan_y);
 	@FFTW_PREFIX@_destroy_plan(plan_y);
 
-	GridPrecision *Bz = (GridPrecision*) Bkz;
+	float *Bz = (float*) Bkz;
 	@FFTW_PREFIX@_plan plan_z = @FFTW_PREFIX@_plan_dft_c2r_3d(n, n, n, Bkz, Bz, FFTW_ESTIMATE);
 	@FFTW_PREFIX@_execute(plan_z);
 	@FFTW_PREFIX@_destroy_plan(plan_z);
@@ -260,7 +261,7 @@ void executeInverseFFTInplace(ref_ptr<VectorGrid> grid, @FFTW_PREFIX@_complex* B
 		for (size_t iy = 0; iy < n; iy++) {
 			for (size_t iz = 0; iz < n; iz++) {
 				size_t i = ix * n * 2 * n2 + iy * 2 * n2 + iz;
-				Vector3GridPrecision &b = grid->get(ix, iy, iz);
+				Vector3<float> &b = grid->get(ix, iy, iz);
 				b.x = Bx[i];
 				b.y = By[i];
 				b.z = Bz[i];
@@ -298,9 +299,9 @@ void initTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double l
 
 	double kMin = spacing.x / lMax;
 	double kMax = spacing.x / lMin;
-	Vector3GridPrecision b; // real b-field vector
-	Vector3GridPrecision ek, e1, e2; // orthogonal base
-	Vector3GridPrecision n0(1, 1, 1); // arbitrary vector to construct orthogonal base
+	Vector3<float> b; // real b-field vector
+	Vector3<float> ek, e1, e2; // orthogonal base
+	Vector3<float> n0(1, 1, 1); // arbitrary vector to construct orthogonal base
 
 	for (size_t ix = 0; ix < n; ix++) {
 		for (size_t iy = 0; iy < n; iy++) {
@@ -652,12 +653,12 @@ void initSlabTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, doub
 
 	// in-place, complex to real, inverse Fourier transformation on each component
 	// note that the last elements of B(x) are unused now
-	GridPrecision *Bx = (GridPrecision*) Bkx;
+	float *Bx = (float*) Bkx;
 	@FFTW_PREFIX@_plan plan_x = @FFTW_PREFIX@_plan_dft_c2r_1d(nz, Bkx, Bx, FFTW_ESTIMATE);
 	@FFTW_PREFIX@_execute(plan_x);
 	@FFTW_PREFIX@_destroy_plan(plan_x);
 
-	GridPrecision *By = (GridPrecision*) Bky;
+	float *By = (float*) Bky;
 	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_c2r_1d(nz, Bky, By, FFTW_ESTIMATE);
 	@FFTW_PREFIX@_execute(plan_y);
 	@FFTW_PREFIX@_destroy_plan(plan_y);
@@ -666,7 +667,7 @@ void initSlabTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, doub
 	for (size_t ix = 0; ix < nx; ix++) {
 		for (size_t iy = 0; iy < ny; iy++) {
 			for (size_t iz = 0; iz < nz; iz++) {
-				Vector3GridPrecision &b = grid->get(ix, iy, iz);
+				Vector3<float> &b = grid->get(ix, iy, iz);
 				b.x = Bx[iz];
 				b.y = By[iz];
 				b.z = 0;
@@ -772,12 +773,12 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 	
 	// in-place, complex to real, inverse Fourier transformation on each component
 	// note that the last elements of B(x) are unused now
-	GridPrecision *Bx = (GridPrecision*) Bkx;
+	float *Bx = (float*) Bkx;
 	@FFTW_PREFIX@_plan plan_x = @FFTW_PREFIX@_plan_dft_c2r_2d(nx, ny, Bkx, Bx, FFTW_ESTIMATE);
 	@FFTW_PREFIX@_execute(plan_x);
 	@FFTW_PREFIX@_destroy_plan(plan_x);
 
-	GridPrecision *By = (GridPrecision*) Bky;
+	float *By = (float*) Bky;
 	@FFTW_PREFIX@_plan plan_y = @FFTW_PREFIX@_plan_dft_c2r_2d(nx, ny, Bky, By, FFTW_ESTIMATE);
 	@FFTW_PREFIX@_execute(plan_y);
 	@FFTW_PREFIX@_destroy_plan(plan_y);
@@ -787,7 +788,7 @@ void init2DTurbulence(ref_ptr<VectorGrid> grid, double Brms, double lMin, double
 		for (size_t iy = 0; iy < ny; iy++) {
 			for (size_t iz = 0; iz < nz; iz++) {
 				size_t i = ix * n + iy;
-				Vector3GridPrecision &b = grid->get(ix, iy, iz);
+				Vector3<float> &b = grid->get(ix, iy, iz);
 				b.x = Bx[i];
 				b.y = By[i];
 				b.z = 0;

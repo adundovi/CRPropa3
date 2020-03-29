@@ -367,17 +367,21 @@ using namespace crpropa;   // for usage of namespace in header files, necessary
 %include "crpropa/GridTools.h"
 %include "crpropa/GridTurbulence.h"
 
-%implicitconv crpropa::ref_ptr<crpropa::Grid<crpropa::Vector3<crpropa::GridPrecision> > >;
-%template(VectorGridRefPtr) crpropa::ref_ptr<crpropa::Grid<crpropa::Vector3<crpropa::GridPrecision> > >;
-%template(VectorGrid) crpropa::Grid<crpropa::Vector3<crpropa::GridPrecision> >;
+%implicitconv crpropa::ref_ptr<crpropa::Grid<crpropa::Vector3<double> > >;
+%template(VectorGridDoubleRefPtr) crpropa::ref_ptr<crpropa::Grid<crpropa::Vector3<double> > >;
+%template(VectorGridDouble) crpropa::Grid<crpropa::Vector3<double> >;
 
-%implicitconv crpropa::ref_ptr<crpropa::Grid<crpropa::GridPrecision> >;
-%template(ScalarGridRefPtr) crpropa::ref_ptr<crpropa::Grid<crpropa::GridPrecision> >;
-%template(ScalarGrid) crpropa::Grid<crpropa::GridPrecision>;
+%implicitconv crpropa::ref_ptr<crpropa::Grid<float> >;
+%template(ScalarGridRefPtr) crpropa::ref_ptr<crpropa::Grid<float> >;
+%template(ScalarGrid) crpropa::Grid<float>;
 
-%implicitconv std::pair<std::vector<double>, std::vector<crpropa::GridPrecision> >;
-%template(PairDoubleGridPrecision) std::pair<double, crpropa::GridPrecision>;
-%template(VectorOfPairs) std::vector<std::pair<double, crpropa::GridPrecision> >;
+%implicitconv crpropa::ref_ptr<crpropa::Grid<double> >;
+%template(ScalarGridDoubleRefPtr) crpropa::ref_ptr<crpropa::Grid<double> >;
+%template(ScalarGridDouble) crpropa::Grid<double>;
+
+%implicitconv std::pair<std::vector<int>, std::vector<float> >;
+%template(PairIntFloat) std::pair<int, float>;
+%template(PairVector) std::vector<std::pair<int, float> >;
 
 %include "crpropa/EmissionMap.h"
 %implicitconv crpropa::ref_ptr<crpropa::EmissionMap>;

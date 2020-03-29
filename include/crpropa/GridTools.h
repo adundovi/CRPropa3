@@ -25,7 +25,7 @@ namespace crpropa {
  */
 
 /** Evaluate the mean vector of all grid points */
-Vector3GridPrecision meanFieldVector(ref_ptr<VectorGrid> grid);
+Vector3d meanFieldVector(ref_ptr<VectorGrid> grid);
 
 /** Evaluate the mean of all grid points */
 double meanFieldStrength(ref_ptr<ScalarGrid> grid);

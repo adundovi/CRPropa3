@@ -20,11 +20,11 @@ void scaleGrid(ref_ptr<VectorGrid> grid, double a) {
 				grid->get(ix, iy, iz) *= a;
 }
 
-Vector3GridPrecision meanFieldVector(ref_ptr<VectorGrid> grid) {
+Vector3d meanFieldVector(ref_ptr<VectorGrid> grid) {
 	size_t Nx = grid->getNx();
 	size_t Ny = grid->getNy();
 	size_t Nz = grid->getNz();
-	Vector3GridPrecision mean(0.);
+	Vector3d mean(0.);
 	for (int ix = 0; ix < Nx; ix++)
 		for (int iy = 0; iy < Ny; iy++)
 			for (int iz = 0; iz < Nz; iz++)
@@ -120,7 +120,7 @@ void loadGrid(ref_ptr<VectorGrid> grid, std::string filename, double c) {
 
 	// get length of file and compare to size of grid
 	fin.seekg(0, fin.end);
-	size_t length = fin.tellg() / sizeof(GridPrecision);
+	size_t length = fin.tellg() / sizeof(float);
 	fin.seekg (0, fin.beg);
 
 	size_t nx = grid->getNx();
@@ -133,10 +133,10 @@ void loadGrid(ref_ptr<VectorGrid> grid, std::string filename, double c) {
 	for (int ix = 0; ix < grid->getNx(); ix++) {
 		for (int iy = 0; iy < grid->getNy(); iy++) {
 			for (int iz = 0; iz < grid->getNz(); iz++) {
-				Vector3GridPrecision &b = grid->get(ix, iy, iz);
-				fin.read((char*) &(b.x), sizeof(GridPrecision));
-				fin.read((char*) &(b.y), sizeof(GridPrecision));
-				fin.read((char*) &(b.z), sizeof(GridPrecision));
+				Vector3<float> &b = grid->get(ix, iy, iz);
+				fin.read((char*) &(b.x), sizeof(float));
+				fin.read((char*) &(b.y), sizeof(float));
+				fin.read((char*) &(b.z), sizeof(float));
 				b *= c;
 			}
 		}
@@ -154,7 +154,7 @@ void loadGrid(ref_ptr<ScalarGrid> grid, std::string filename, double c) {
 
 	// get length of file and compare to size of grid
 	fin.seekg(0, fin.end);
-	size_t length = fin.tellg() / sizeof(GridPrecision);
+	size_t length = fin.tellg() / sizeof(float);
 	fin.seekg (0, fin.beg);
 
 	size_t nx = grid->getNx();
@@ -167,8 +167,8 @@ void loadGrid(ref_ptr<ScalarGrid> grid, std::string filename, double c) {
 	for (int ix = 0; ix < nx; ix++) {
 		for (int iy = 0; iy < ny; iy++) {
 			for (int iz = 0; iz < nz; iz++) {
-				GridPrecision &b = grid->get(ix, iy, iz);
-				fin.read((char*) &b, sizeof(GridPrecision));
+				float &b = grid->get(ix, iy, iz);
+				fin.read((char*) &b, sizeof(float));
 				b *= c;
 			}
 		}
@@ -186,10 +186,10 @@ void dumpGrid(ref_ptr<VectorGrid> grid, std::string filename, double c) {
 	for (int ix = 0; ix < grid->getNx(); ix++) {
 		for (int iy = 0; iy < grid->getNy(); iy++) {
 			for (int iz = 0; iz < grid->getNz(); iz++) {
-				Vector3GridPrecision b = grid->get(ix, iy, iz) * c;
-				fout.write((char*) &(b.x), sizeof(GridPrecision));
-				fout.write((char*) &(b.y), sizeof(GridPrecision));
-				fout.write((char*) &(b.z), sizeof(GridPrecision));
+				Vector3<float> b = grid->get(ix, iy, iz) * c;
+				fout.write((char*) &(b.x), sizeof(float));
+				fout.write((char*) &(b.y), sizeof(float));
+				fout.write((char*) &(b.z), sizeof(float));
 			}
 		}
 	}
@@ -206,8 +206,8 @@ void dumpGrid(ref_ptr<ScalarGrid> grid, std::string filename, double c) {
 	for (int ix = 0; ix < grid->getNx(); ix++) {
 		for (int iy = 0; iy < grid->getNy(); iy++) {
 			for (int iz = 0; iz < grid->getNz(); iz++) {
-				GridPrecision b = grid->get(ix, iy, iz) * c;
-				fout.write((char*) &b, sizeof(GridPrecision));
+				float b = grid->get(ix, iy, iz) * c;
+				fout.write((char*) &b, sizeof(float));
 			}
 		}
 	}
@@ -228,7 +228,7 @@ void loadGridFromTxt(ref_ptr<VectorGrid> grid, std::string filename, double c) {
 	for (int ix = 0; ix < grid->getNx(); ix++) {
 		for (int iy = 0; iy < grid->getNy(); iy++) {
 			for (int iz = 0; iz < grid->getNz(); iz++) {
-				Vector3GridPrecision &b = grid->get(ix, iy, iz);
+				Vector3<float> &b = grid->get(ix, iy, iz);
 				fin >> b.x >> b.y >> b.z;
 				b *= c;
 				if (fin.eof())
@@ -253,7 +253,7 @@ void loadGridFromTxt(ref_ptr<ScalarGrid> grid, std::string filename, double c) {
 	for (int ix = 0; ix < grid->getNx(); ix++) {
 		for (int iy = 0; iy < grid->getNy(); iy++) {
 			for (int iz = 0; iz < grid->getNz(); iz++) {
-				GridPrecision &b = grid->get(ix, iy, iz);
+				float &b = grid->get(ix, iy, iz);
 				fin >> b;
 				b *= c;
 				if (fin.eof())
@@ -274,7 +274,7 @@ void dumpGridToTxt(ref_ptr<VectorGrid> grid, std::string filename, double c) {
 	for (int ix = 0; ix < grid->getNx(); ix++) {
 		for (int iy = 0; iy < grid->getNy(); iy++) {
 			for (int iz = 0; iz < grid->getNz(); iz++) {
-				Vector3GridPrecision b = grid->get(ix, iy, iz) * c;
+				Vector3<float> b = grid->get(ix, iy, iz) * c;
 				fout << b << "\n";
 			}
 		}
@@ -292,7 +292,7 @@ void dumpGridToTxt(ref_ptr<ScalarGrid> grid, std::string filename, double c) {
 	for (int ix = 0; ix < grid->getNx(); ix++) {
 		for (int iy = 0; iy < grid->getNy(); iy++) {
 			for (int iz = 0; iz < grid->getNz(); iz++) {
-				GridPrecision b = grid->get(ix, iy, iz) * c;
+				float b = grid->get(ix, iy, iz) * c;
 				fout << b << "\n";
 			}
 		}

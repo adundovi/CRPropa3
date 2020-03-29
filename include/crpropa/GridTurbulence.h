@@ -27,9 +27,7 @@ double turbulentCorrelationLength(double lMin, double lMax,
  Calculate the omnidirectional power spectrum E(k) for a given turbulent field
  Returns a vector of pairs (k_i, E(k_i))
 */
-typedef std::vector<std::pair<double, GridPrecision> > VectorOfPairs;
-VectorOfPairs gridPowerSpectrum(ref_ptr<VectorGrid> grid); 
-VectorOfPairs gridPowerSpectrum2D(ref_ptr<VectorGrid> grid);
+std::vector<std::pair<int, float> > gridPowerSpectrum(ref_ptr<VectorGrid> grid); 
 
 /**
  Create a random initialization of a turbulent field.
