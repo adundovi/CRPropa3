@@ -11,14 +11,14 @@
 #include <iostream>
 
 
-#ifdef CRPROPA_HAVE_HDF5 
+#ifdef CRPROPA_HAVE_HDF5
 	#include <hdf5.h>
 #endif
 
 // compare two arrays (intead of using Google Mock)
 // https://stackoverflow.com/a/10062016/6819103
 template<typename T, size_t size>
-::testing::AssertionResult ArraysMatch(const T (&expected)[size], 
+::testing::AssertionResult ArraysMatch(const T (&expected)[size],
 		const T (&actual)[size]){
 	for (size_t i(0); i < size; ++i){
 		if (expected[i] != actual[i]){
@@ -148,7 +148,7 @@ TEST(TextOutput, failOnIllegalOutputFile)
 	EXPECT_THROW(TextOutput output("THIS_FOLDER_MUST_NOT_EXISTS_12345+/FILE.txt"), std::runtime_error);
 }
 
-#ifdef CRPROPA_HAVE_HDF5 
+#ifdef CRPROPA_HAVE_HDF5
 TEST(HDF5Output, failOnIllegalOutputFile)
 {
 	HDF5Output out;
@@ -219,7 +219,6 @@ TEST(ParticleCollector, getTrajectory) {
 	int pos_x[10];
 	int pos_x_expected[] = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
 
-
 	ParticleState p;
 	p.setPosition(Vector3d(10, 0, 0));
 	p.setDirection(Vector3d(-1, 0, 0));
@@ -241,7 +240,7 @@ TEST(ParticleCollector, getTrajectory) {
 
 	output->getTrajectory(sim, 0, trajectory);
 
-	Vector3d pos; int i;
+	Vector3d pos; int i = 0;
 
 	for (ParticleCollector::iterator itr = trajectory->begin(); itr != trajectory->end(); ++itr){
 		pos = (*(itr->get())).current.getPosition();
@@ -253,22 +252,22 @@ TEST(ParticleCollector, getTrajectory) {
 }
 
 TEST(ParticleCollector, runModuleList) {
-	ModuleList modules;
-	modules.add(new SimplePropagation());
-	modules.add(new MaximumTrajectoryLength(1 * Mpc));
-	
-	ParticleState p;
-	p.setPosition(Vector3d(10, 0, 0));
-	p.setDirection(Vector3d(-1, 0, 0));
-	ref_ptr<Candidate> c = new Candidate(p);
+        ModuleList modules;
+        modules.add(new SimplePropagation());
+        modules.add(new MaximumTrajectoryLength(1 * Mpc));
+        
+        ParticleState p;
+        p.setPosition(Vector3d(10, 0, 0));
+        p.setDirection(Vector3d(-1, 0, 0));
+        ref_ptr<Candidate> c = new Candidate(p);
 
-	ref_ptr<ParticleCollector> collector = new ParticleCollector();
+        ref_ptr<ParticleCollector> collector = new ParticleCollector();
 
-	collector->process(c);
-	
-	modules.setShowProgress(true);
-	auto candidates = collector->getAll();
-	modules.run(&candidates);
+        collector->process(c);
+        
+        modules.setShowProgress(false);
+        auto candidates = collector->getAll();
+        modules.run(&candidates);
 }
 
 int main(int argc, char **argv) {
