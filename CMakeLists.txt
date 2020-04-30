@@ -394,7 +394,7 @@ add_library(crpropa SHARED
 	src/module/PhotonOutput1D.cpp
 	src/module/PropagationCK.cpp
 	src/module/PropagationBP.cpp
-        src/module/Redshift.cpp
+    src/module/Redshift.cpp
 	src/module/RestrictToRegion.cpp
 	src/module/SimplePropagation.cpp
 	src/module/SynchrotronRadiation.cpp
@@ -408,6 +408,7 @@ add_library(crpropa SHARED
 	src/magneticField/PT11Field.cpp
     src/magneticField/TF17Field.cpp
 	src/magneticField/ArchimedeanSpiralField.cpp
+	src/magneticField/TD13Field.cpp
 	src/advectionField/AdvectionField.cpp
 	src/massDistribution/Nakanishi.cpp
 	src/massDistribution/Massdistribution.cpp
