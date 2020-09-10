@@ -414,6 +414,7 @@ using namespace crpropa;   // for usage of namespace in header files, necessary
 %include "crpropa/magneticField/ArchimedeanSpiralField.h"
 %include "crpropa/magneticField/turbulentField/TurbulentField.h"
 %include "crpropa/magneticField/turbulentField/GridTurbulence.h"
+%include "crpropa/magneticField/turbulentField/GridTurbulenceDouble.h"
 %include "crpropa/magneticField/turbulentField/SimpleGridTurbulence.h"
 %include "crpropa/magneticField/turbulentField/HelicalGridTurbulence.h"
 %include "crpropa/magneticField/turbulentField/PlaneWaveTurbulence.h"

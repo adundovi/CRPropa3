@@ -227,13 +227,21 @@ if(GOOGLE_PERFTOOLS_FOUND AND NOT NO_TCMALLOC)
 endif(GOOGLE_PERFTOOLS_FOUND AND NOT NO_TCMALLOC)
 
 # FFTW3F (optional for turbulent magnetic fields)
-find_package(FFTW3F)
+find_package(FFTW3)
 if(FFTW3F_FOUND)
 	list(APPEND CRPROPA_EXTRA_INCLUDES ${FFTW3F_INCLUDE_DIR})
 	list(APPEND CRPROPA_EXTRA_LIBRARIES ${FFTW3F_LIBRARY})
 	add_definitions(-DCRPROPA_HAVE_FFTW3F)
 	list(APPEND CRPROPA_SWIG_DEFINES -DCRPROPA_HAVE_FFTW3F)
 endif(FFTW3F_FOUND)
+
+# FFTW3 (optional for turbulent magnetic fields)
+if(FFTW3_FOUND)
+	list(APPEND CRPROPA_EXTRA_INCLUDES ${FFTW3_INCLUDE_DIR})
+	list(APPEND CRPROPA_EXTRA_LIBRARIES ${FFTW3_LIBRARY})
+	add_definitions(-DCRPROPA_HAVE_FFTW3)
+	list(APPEND CRPROPA_SWIG_DEFINES -DCRPROPA_HAVE_FFTW3)
+endif(FFTW3_FOUND)
 
 # Quimby (optional for SPH magnetic fields)
 option(ENABLE_QUIMBY "Quimby Support" ON)
@@ -411,6 +419,7 @@ add_library(crpropa SHARED
 	src/magneticField/MagneticFieldGrid.cpp
 	src/magneticField/PT11Field.cpp
 	src/magneticField/turbulentField/GridTurbulence.cpp
+	src/magneticField/turbulentField/GridTurbulenceDouble.cpp
 	src/magneticField/turbulentField/HelicalGridTurbulence.cpp
 	src/magneticField/turbulentField/PlaneWaveTurbulence.cpp
 	src/magneticField/turbulentField/SimpleGridTurbulence.cpp

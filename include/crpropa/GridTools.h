@@ -30,23 +30,28 @@ namespace crpropa {
 
 /** Evaluate the mean vector of all grid points */
 Vector3f meanFieldVector(ref_ptr<Grid3f> grid);
+Vector3d meanFieldVector(ref_ptr<Grid3d> grid);
 
 /** Evaluate the mean of all grid points */
 double meanFieldStrength(ref_ptr<Grid1f> grid);
 /** Evaluate the mean of all grid points */
 double meanFieldStrength(ref_ptr<Grid3f> grid);
+double meanFieldStrength(ref_ptr<Grid3d> grid);
 
 /** Evaluate the RMS of all grid points */
 double rmsFieldStrength(ref_ptr<Grid1f> grid);
 /** Evaluate the RMS of all grid points */
 double rmsFieldStrength(ref_ptr<Grid3f> grid);
+double rmsFieldStrength(ref_ptr<Grid3d> grid);
 /** Evaluate the RMS of all grid points per axis */
 std::array<float, 3> rmsFieldStrengthPerAxis(ref_ptr<Grid3f> grid);
+std::array<double, 3> rmsFieldStrengthPerAxis(ref_ptr<Grid3d> grid);
 
 /** Multiply all grid values by a given factor */
 void scaleGrid(ref_ptr<Grid1f> grid, double a);
 /** Multiply all grid values by a given factor */
 void scaleGrid(ref_ptr<Grid3f> grid, double a);
+void scaleGrid(ref_ptr<Grid3d> grid, double a);
 
 /** Fill vector grid from provided magnetic field */
 void fromMagneticField(ref_ptr<Grid3f> grid, ref_ptr<MagneticField> field);

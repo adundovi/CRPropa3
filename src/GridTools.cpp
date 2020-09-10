@@ -20,6 +20,13 @@ void scaleGrid(ref_ptr<Grid3f> grid, double a) {
 				grid->get(ix, iy, iz) *= a;
 }
 
+void scaleGrid(ref_ptr<Grid3d> grid, double a) {
+	for (int ix = 0; ix < grid->getNx(); ix++)
+		for (int iy = 0; iy < grid->getNy(); iy++)
+			for (int iz = 0; iz < grid->getNz(); iz++)
+				grid->get(ix, iy, iz) *= a;
+}
+
 Vector3f meanFieldVector(ref_ptr<Grid3f> grid) {
 	size_t Nx = grid->getNx();
 	size_t Ny = grid->getNy();
@@ -32,7 +39,31 @@ Vector3f meanFieldVector(ref_ptr<Grid3f> grid) {
 	return mean / Nx / Ny / Nz;
 }
 
+Vector3d meanFieldVector(ref_ptr<Grid3d> grid) {
+	size_t Nx = grid->getNx();
+	size_t Ny = grid->getNy();
+	size_t Nz = grid->getNz();
+	Vector3d mean(0.);
+	for (int ix = 0; ix < Nx; ix++)
+		for (int iy = 0; iy < Ny; iy++)
+			for (int iz = 0; iz < Nz; iz++)
+				mean += grid->get(ix, iy, iz);
+	return mean / Nx / Ny / Nz;
+}
+
 double meanFieldStrength(ref_ptr<Grid3f> grid) {
+	size_t Nx = grid->getNx();
+	size_t Ny = grid->getNy();
+	size_t Nz = grid->getNz();
+	double mean = 0;
+	for (int ix = 0; ix < Nx; ix++)
+		for (int iy = 0; iy < Ny; iy++)
+			for (int iz = 0; iz < Nz; iz++)
+				mean += grid->get(ix, iy, iz).getR();
+	return mean / Nx / Ny / Nz;
+}
+
+double meanFieldStrength(ref_ptr<Grid3d> grid) {
 	size_t Nx = grid->getNx();
 	size_t Ny = grid->getNy();
 	size_t Nz = grid->getNz();
@@ -68,6 +99,18 @@ double rmsFieldStrength(ref_ptr<Grid3f> grid) {
 	return std::sqrt(sumV2 / Nx / Ny / Nz);
 }
 
+double rmsFieldStrength(ref_ptr<Grid3d> grid) {
+	size_t Nx = grid->getNx();
+	size_t Ny = grid->getNy();
+	size_t Nz = grid->getNz();
+	double sumV2 = 0;
+	for (int ix = 0; ix < Nx; ix++)
+		for (int iy = 0; iy < Ny; iy++)
+			for (int iz = 0; iz < Nz; iz++)
+				sumV2 += grid->get(ix, iy, iz).getR2();
+	return std::sqrt(sumV2 / Nx / Ny / Nz);
+}
+
 double rmsFieldStrength(ref_ptr<Grid1f> grid) {
 	size_t Nx = grid->getNx();
 	size_t Ny = grid->getNy();
@@ -87,6 +130,27 @@ std::array<float, 3> rmsFieldStrengthPerAxis(ref_ptr<Grid3f> grid) {
     float sumV2_x = 0;
     float sumV2_y = 0;
     float sumV2_z = 0;
+    for (int ix = 0; ix < Nx; ix++)
+        for (int iy = 0; iy < Ny; iy++)
+            for (int iz = 0; iz < Nz; iz++) {
+                sumV2_x += pow(grid->get(ix, iy, iz).x, 2);
+                sumV2_y += pow(grid->get(ix, iy, iz).y, 2);
+                sumV2_z += pow(grid->get(ix, iy, iz).z, 2);
+            }
+    return {
+        std::sqrt(sumV2_x / Nx / Ny / Nz),
+        std::sqrt(sumV2_y / Nx / Ny / Nz),
+        std::sqrt(sumV2_z / Nx / Ny / Nz)
+    };
+}
+
+std::array<double, 3> rmsFieldStrengthPerAxis(ref_ptr<Grid3d> grid) {
+    size_t Nx = grid->getNx();
+    size_t Ny = grid->getNy();
+    size_t Nz = grid->getNz();
+    double sumV2_x = 0;
+    double sumV2_y = 0;
+    double sumV2_z = 0;
     for (int ix = 0; ix < Nx; ix++)
         for (int iy = 0; iy < Ny; iy++)
             for (int iz = 0; iz < Nz; iz++) {
