@@ -44,9 +44,10 @@ void GridTurbulence::initTurbulence() {
 		random.seed(seed); // use given seed
 
 	// calculate the n possible discrete wave numbers
-	double K[n];
-	for (int i = 0; i < n; i++)
-		K[i] = ((double)i / n - i / (n / 2));
+	std::vector<double> K;
+	K.reserve(n);
+	for (size_t i = 0; i < n; i++)
+		K.push_back(((double)i / n - i / (n / 2)));
 
 	// construct the field in configuration space
 	int i;
